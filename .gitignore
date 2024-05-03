@@ -399,3 +399,4 @@ FodyWeavers.xsd
 
 #My own
 .idea/
+.DS_Store
