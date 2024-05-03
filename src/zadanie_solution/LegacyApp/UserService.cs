@@ -3,21 +3,35 @@
 namespace LegacyApp
 {
     //adds user to user db
-    public class UserService
+    public class UserService(IClientRepository clientRepository)
     {
+        private readonly IClientRepository _clientRepository = clientRepository;
+
+        public UserService() : this(new ClientRepository())
+        {
+        }
+
         public bool AddUser(string firstName, string lastName, string email, DateTime dateOfBirth, int clientId)
         {
-            var clientRepository = new ClientRepository();
-            var client = clientRepository.GetById(clientId);
-
-            var user = new User
+            var client = _clientRepository.GetById(clientId);
+            User user;
+            try
             {
-                Client = client,
-                DateOfBirth = dateOfBirth,
-                EmailAddress = email,
-                FirstName = firstName,
-                LastName = lastName
-            };
+                user = new User
+                {
+                    Client = client,
+                    DateOfBirth = dateOfBirth,
+                    EmailAddress = email,
+                    FirstName = firstName,
+                    LastName = lastName
+                };
+            }
+            catch (ArgumentException argumentException)
+            {
+                Console.WriteLine(argumentException.Message);
+                return false;
+            }
+            
 
             if (client.Type == "VeryImportantClient")
             {
