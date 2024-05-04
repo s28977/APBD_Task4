@@ -2,7 +2,6 @@
 
 namespace LegacyApp;
 
-//adds user to user db
 public class UserService(IClientRepository clientRepository, IUserCreditRepository userCreditRepository)
 {
     public UserService() : this(new ClientRepository(), new UserCreditRepository())
@@ -11,8 +10,16 @@ public class UserService(IClientRepository clientRepository, IUserCreditReposito
 
     public bool AddUser(string firstName, string lastName, string email, DateTime dateOfBirth, int clientId)
     {
-        var client = clientRepository.GetById(clientId);
+        var user = CreateUser(firstName, lastName, email, dateOfBirth, clientId);
+        if (user == null) return false;
+        UserDataAccess.AddUser(user);
+        return true;
+    }
+
+    private User CreateUser(string firstName, string lastName, string email, DateTime dateOfBirth, int clientId)
+    {
         User user;
+        var client = clientRepository.GetById(clientId);
         try
         {
             user = new User
@@ -21,38 +28,35 @@ public class UserService(IClientRepository clientRepository, IUserCreditReposito
                 DateOfBirth = dateOfBirth,
                 EmailAddress = email,
                 FirstName = firstName,
-                LastName = lastName
+                LastName = lastName,
             };
         }
         catch (ArgumentException argumentException)
         {
             Console.WriteLine(argumentException.Message);
-            return false;
+            return null;
         }
+        return !SetUserCreditLimit(user) ? null : user;
+    }
 
-        if (client.Type == ClientType.VeryImportant)
-        {
-            user.HasCreditLimit = false;
-        }
-        else if (client.Type == ClientType.Important)
-        {
-            var creditLimit = userCreditRepository.GetCreditLimit(user.LastName);
-            creditLimit = creditLimit * 2;
-            user.CreditLimit = creditLimit;
-        }
-        else
-        {
-            user.HasCreditLimit = true;
-            var creditLimit = userCreditRepository.GetCreditLimit(user.LastName);
-            user.CreditLimit = creditLimit;
-        }
+    private bool SetUserCreditLimit(User user)
+    {
+        var creditLimit = GetCreditLimit(user.LastName, user.Client.Type);
+        user.HasCreditLimit = creditLimit.HasValue;
+        user.CreditLimit = creditLimit.GetValueOrDefault(0);
+        return !(user.HasCreditLimit && user.CreditLimit < 500);
+    }
 
-        if (user.HasCreditLimit && user.CreditLimit < 500)
+    private int? GetCreditLimit(string lastName, ClientType type)
+    {
+        var creditLimit = userCreditRepository.GetCreditLimit(lastName);
+        return type switch
         {
-            return false;
-        }
-
-        UserDataAccess.AddUser(user);
-        return true;
+            ClientType.Normal => creditLimit,
+            ClientType.Important => 2 * creditLimit,
+            ClientType.VeryImportant => null,
+            _ => throw new ArgumentOutOfRangeException(null,
+                $"User credit limit for this client type is not specified.")
+        };
     }
 }
