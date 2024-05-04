@@ -2,7 +2,7 @@ namespace LegacyApp;
 
 public enum ClientType
 {
-    VeryImportant,
+    Normal,
     Important,
-    Normal
+    VeryImportant
 }
