@@ -33,11 +33,11 @@ namespace LegacyApp
             }
             
 
-            if (client.Type == "VeryImportantClient")
+            if (client.Type == ClientType.VeryImportant)
             {
                 user.HasCreditLimit = false;
             }
-            else if (client.Type == "ImportantClient")
+            else if (client.Type == ClientType.Important)
             {
                 using (var userCreditService = new UserCreditService())
                 {
